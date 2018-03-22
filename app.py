@@ -73,11 +73,16 @@ def addnew():
             data = request.json
             acc = Account(data['account_number'], data['firstname'], data['lastname'], data['gender'], data['age'],
                           data['email'],data['city'], data['address'], data['state'], data['employer'], data['balance'])
-            acctbl = db.accounts
-            acctbl.insert(acc.tojson())
-            return jsonify({
-                'msg': 'insert successed'
-            }), 201
+            accTbl = db.accounts
+            result = accTbl.insert(acc.tojson())
+            if result.inserted_id :
+                return jsonify({
+                    'msg': 'insert successed'
+                }), 201
+            else:
+                return jsonify({
+                    'msg': 'insert failed'
+                }), 400
     else:
         return jsonify({
             "msg": 'Access permission denied'
@@ -94,16 +99,38 @@ def update(id):
             acc = Account(data['account_number'], data['firstname'], data['lastname'], data['gender'], data['age'],
                           data['email'], data['city'], data['address'], data['state'], data['employer'],
                           data['balance'])
-            acctbl = db.accounts
-            acctbl.update_one({"account_number" : id}, { "$set" : acc.tojson()})
-
-            return jsonify({
-                'msg': 'update successed'
-            }), 201
+            accTbl = db.accounts
+            result = accTbl.update_one({"account_number" : int(id)}, { "$set" : acc.tojson()})
+            if result.matched_count == 1:
+                return jsonify({
+                    'msg': 'update successed'
+                }), 201
+            else:
+                return jsonify({
+                    'msg': 'update failed'
+                }), 400
     else:
         return jsonify({
             "msg": 'Access permission denied'
         }), 400
+
+#method delete : delet an account
+@app.route('/delete/<id>', methods=['DELETE'])
+@jwt_required
+def delete(id):
+    current_user = get_jwt_identity()
+    if isadmin(current_user):
+        if request.method == 'DELETE':
+            accTbl = db.accounts
+            result = accTbl.delete_one({"account_number" : int(id)})
+            if result.deleted_count == 1:
+                return jsonify({
+                    'msg': 'delete successed'
+                }), 201
+            else:
+                return jsonify({
+                    'msg': 'delete failed'
+                }), 400
 
 def isadmin(username):
     usertbl = db.user
